@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.care.file.mybatis.IFileMapper">
+
+ <resultMap type="com.care.file.dto.FileDTO" id="file">
+ 	<id property="id" column="id"/>
+ 	<result property="name" column="name"/>
+ 	<result property="saveName" column="img_name"/>
+ </resultMap>
+
+ 
+ 	<select id="getFileList" resultMap="file">
+ 		select * from file_image
+ 	</select>
+ 	
+ 	<update id="deleteFile">
+ 		delete from file_image where id = #{id}
+ 	</update>
+ 
+ 	<insert id="saveFile">
+ 		insert into file_image values (#{id}, #{name}, #{saveName})
+ 	</insert>
+</mapper>
+
+
+
+
+
+
+

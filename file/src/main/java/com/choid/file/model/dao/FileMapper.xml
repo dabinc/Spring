@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace ="com.choid.file.model.dao.IFileRepository">
+<!-- 위 4줄로 초기설정 (복붙 가능)-->
+
+<select id="getMaxFileId" resultType="int">
+SELECT NVL (MAX (file_id), 0) from files
+</select>
+<!-- 현재 있는 file_id에서 최대값 뽑아서 다음 게시글의 file_id determination 용도 -->
+<!--if max(file_id) == null at declaration, set null value == 0  -->
+
+<insert id="uploadFile" parameterType="com.choid.file.model.vo.FileVO">
+insert into files values(#{fileId}, #{directoryName}, #{fileName}, #{fileSize},
+#{fileContentType}, sysdate, #{fileData}) 
+<!-- sysdate는 timestamp처럼 현재 시간을 넣어주는 sql var -->
+</insert>
+
+<select id="getFile" parameterType="int" resultType="com.choid.file.model.vo.FileVO">
+select file_id as fileId, directory_name directoryName, file_name as fileName,
+file_size as fileSize, file_content_type as fileContentType,
+file_upload_date as fileUploadDate, file_data as fileData
+from files where file_id=#{fileId}
+</select>
+
+<select id="getAllFileList" resultType="com.choid.file.model.vo.FileVO">
+select file_id as fileId, directory_name directoryName, file_name as fileName,
+file_size as fileSize, file_content_type as fileContentType,
+file_upload_date as fileUploadDate, file_data as fileData
+from files order by fileId desc
+</select>
+
+<select id="getAllFileListByDir" parameterType="String" resultType="com.choid.file.model.vo.FileVO">
+select file_id as fileId, directory_name directoryName, file_name as fileName,
+file_size as fileSize, file_content_type as fileContentType,
+file_upload_date as fileUploadDate, file_data as fileData
+from files where directory_name=#{dir}
+</select>
+
+<delete id="deleteFile" parameterType="int">
+delete from files where file_Id=#{fileId}
+</delete>
+
+
+
+
+
+
+</mapper>

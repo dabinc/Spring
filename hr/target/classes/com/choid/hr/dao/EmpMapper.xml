@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace ="com.choid.hr.dao.IEmpRepository">
+<!-- 11개 임 -->
+<resultMap id="empMap" type="com.choid.hr.model.EmpVO">
+<result property="employeeId" column="employee_id" />
+<result property="firstName" column="first_name" />
+<result property="lastName" column="last_name" />
+<result property="email" column="email" />
+<result property="phoneNumber" column="phone_number" />
+<result property="hireDate" column="hire_date" />
+<result property="jobId" column="job_id" />
+<result property="salary" column="salary" />
+<result property="comissionPct" column="commission_pct" />
+<result property="managerId" column="manager_id" />
+<result property="departmentId" column="department_id" />
+</resultMap>
+	
+<select id="getEmpCount" resultType="int">
+select count(*) from employees
+</select>
+	
+<select id="getEmpList" resultMap="empMap">
+select * from employees order by employee_id
+<!-- 동적표현 -> where department_id = ${deptId} -->
+<!-- 쓰려면 IEmpRepo 메소드 declaration에 mybatis 동적쿼리 선언을 해줘야함
+int getEmpCount(@Param("deptId") int deptId); -->
+<where>
+	<if test="deptId != null">
+	department_id=#{deptId}
+	</if>
+</where>
+</select>
+
+<select id="getEmpInfo" parameterType="int" resultType="com.choid.hr.model.EmpDetailVO">
+select e.employee_id as employeeId, first_name as firstName, last_name as lastName, 
+email, phone_number as phoneNumber, hire_date as hireDate, e.job_id as jobId, 
+job_title as jobTitle, salary, commission_pct as comissionPct, e.manager_id as managerId,
+manager_name as managerName, e.department_id as departmentId, department_name as departmentName
+from employees e 
+left join jobs j on e.job_id=j.job_id
+left join departments d on e.department_id=d.department_id
+left join (select employee_id, first_name||' '||last_name as manager_name
+	from employees where employee_id in (select distinct manager_id from employees)) m
+	on e.manager_id=m.employee_id where e.employee_id=#{empId}
+</select>
+
+
+<insert id="insertEmp" parameterType="com.choid.hr.model.EmpVO">
+<!--  들어오는 param은 EmpVO이며 , 
+empVO의 .emp.변수값으로 넣겠다 -->
+insert into employees values(#{employeeId}, #{firstName}, #{lastName}, #{email}, #{phoneNumber},
+	#{hireDate}, #{jobId}, #{salary}, #{comissionPct}, #{managerId}, #{departmentId})
+</insert>
+
+<delete id="deleteEmp" parameterType="int">
+delete from employees 
+where employee_id=#{empId}
+</delete>
+
+<delete id="deleteJobHistory" parameterType="int">
+delete from job_history 
+where employee_id=#{empId}
+</delete>
+
+<select id="getAllJobList" resultType="com.choid.hr.model.JobVO">
+select job_id as jobId, job_title as jobTitle 
+from jobs
+</select>
+
+<select id="getAllManagerList" resultType="com.choid.hr.model.EmpVO">
+<!-- ||' '||last_name -->
+select employee_id as employeeId, first_name as firstName,
+from employees 
+where employee_id=manager_id
+<!-- 또는 in  (select distinct manager_id from employees)-->
+
+</select>
+
+<update id="updateEmp" parameterType="com.choid.hr.model.EmpVO">
+update employees set first_name=#{firstName}, last_name=#{lastName}, email=#{email},
+phone_number=#{phoneNumber}, hire_date=#{hireDate}, job_id=#{jobId}, salary=#{salary},
+commission_pct=#{comissionPct}, manager_id=#{managerId}, department_id=#{departmentId}
+where employee_id=#{employeeId}
+</update>
+
+<select id="getAllDeptList" resultType="com.choid.hr.model.DeptVO">
+select department_id as departmentId, department_name as departmentName
+from departments
+</select>
+
+<select id="getManagerCount" parameterType="int" resultType="int">
+select count(*) from employees 
+where manager_id=#{empId}
+</select>
+
+<select id="getDeptCount" parameterType="int" resultType="int">
+select count(*) from departments where manager_id=#{empId}
+</select>
+
+<update id="nullify1" parameterType="int">
+update departments set manager_id=null where manager_id=#{empId}
+</update>
+
+<update id="nullify2" parameterType="int">
+update employees set manager_id=null where manager_id=#{empId}
+</update>
+
+<select id="checkDuplicate" parameterType="int">
+select count(*) from employees where employee_id=#{empId}
+</select>
+</mapper>

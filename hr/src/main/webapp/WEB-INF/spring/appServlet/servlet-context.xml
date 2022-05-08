@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.3.xsd
+		http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+	<!-- DispatcherServlet Context: defines this servlet's request-processing infrastructure -->
+	
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<annotation-driven />
+	
+	<aop:aspectj-autoproxy></aop:aspectj-autoproxy> 
+	<!-- 이게들어가야 알아서 탐색가능 @어노테이션 driven이랑 똑같음 -->
+
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
+	<resources mapping="/resources/**" location="/resources/" />
+
+	<!-- Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory -->
+	<beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/views/" />
+		<beans:property name="suffix" value=".jsp" />
+	</beans:bean>
+	
+	<context:component-scan base-package="com.choid.hr.*" />
+
+	<context:property-placeholder location="classpath:db/jdbc.properties" />
+
+	<beans:bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<beans:property name="driverClassName" value="${jdbc.driverClassName}" />
+		<beans:property name="url" value="${jdbc.url}" />
+		<beans:property name="username" value="${jdbc.username}" />
+		<beans:property name="password" value="${jdbc.password}" />
+	</beans:bean>
+		
+	<beans:bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<beans:property name="dataSource" ref="dataSource"/>
+	</beans:bean>
+	
+	<!--  transaction manager를 bean에 bind해주기 -->
+	<beans:bean id ="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<beans:property name="dataSource" ref="dataSource"></beans:property>
+	</beans:bean>
+	<!-- transaction 매니저가 get으로 시작하는걸 다 관찰하도록 설정  -->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- aop config를 해줘야함  내가 원하는 코드를 어디에 끼워넣겠다.-->
+	<!-- 특정 행동들을 묶어서 객체지향화 하는게 AOP인데, delete와 update를 묶는다 -->
+	<aop:config>
+		<aop:pointcut id="txPointcut"
+		expression="execution(* com.choid.hr.service.EmpService.*teEmp(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+	</aop:config>
+		<!-- 메소드를 엮을땐 return type, location, method 을 쓴다 -->
+		<!-- com...EmpService로 생략 가능하다 -->
+	
+	<!--  mybatis를 보통 sqlSessionFactory라고 네이밍한다 -->
+	<beans:bean id="sqlSessionFactory"	class="org.mybatis.spring.SqlSessionFactoryBean">
+		<beans:property name="dataSource" ref="dataSource"></beans:property>
+		<beans:property name="mapperLocations" value="classpath:/com/choid/hr/**/*.xml"></beans:property>
+	</beans:bean>
+	<mybatis-spring:scan base-package="com.choid.hr.*"/>
+
+	
+</beans:beans>
+<!--  추가할 내용  -> 내가 작성하고 싶은것만 넣으면 된다.
+1. mybatis 
+  - 추가하려면 namespace에서 mybatis를 추가해야함
+2. jdbc 무조건 써야함. db랑 연결툴
+  - namespace에서 jdbc 추가
+3. aop든 transaction이든 필요한 내용을 클릭하고 추가하면 됨.
+4. <context:property-placeholder location="classpath:db/jdbc.properties"/>
+  - hr프로젝트 -> src/main/resources 밑에 db/jdbc.properties라고 저장을 했었음
+  - 내용 
+	jdbc.driverClassName=oracle.jdbc.OracleDriver
+	jdbc.url=jdbc:oracle:thin:@localhost:1521/xepdb1
+	jdbc.username=hr
+	jdbc.password=hr  
+  - 로그인 credential을 입력해두고 db conmect할때 쓸 내용들이라 필요함
+5. data source관련 bean도 복붙. 위 4번의 jdbc.properties를 읽어들이는 코드임
+	
+	<beans:bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<beans:property name="driverClassName" value="${jdbc.driverClassName}" />
+		<beans:property name="url" value="${jdbc.url}" />
+		<beans:property name="username" value="${jdbc.username}" />
+		<beans:property name="password" value="${jdbc.password}" />
+	</beans:bean>
+	
+6. mybatis 쓸거면 패키지명 변경해서 sqlSesionFactory, scan package 두개 복사
+
+	mybatis를 보통 sqlSessionFactory라고 네이밍한다
+	<beans:bean id="sqlSessionFactory"	class="org.mybatis.spring.SqlSessionFactoryBean">
+		<beans:property name="dataSource" ref="dataSource"></beans:property>
+		<beans:property name="mapperLocations" value="classpath:/com/choid/hr/**/*.xml"></beans:property>
+	</beans:bean>
+	<mybatis-spring:scan base-package="com.choid.hr.*"/>
+	
+6. jdbcTemplate, txManager 쓸꺼면 가져와도 됨
+	<beans:bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<beans:property name="dataSource" ref="dataSource"/>
+	</beans:bean>
+	
+	transaction manager를 bean에 bind해주기
+	<beans:bean id ="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<beans:property name="dataSource" ref="dataSource"></beans:property>
+	</beans:bean>
+	transaction 매니저가 get으로 시작하는걸 다 관찰하도록 설정 
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	aop config를 해줘야함  내가 원하는 코드를 어디에 끼워넣겠다
+	특정 행동들을 묶어서 객체지향화 하는게 AOP인데, delete와 update를 묶는다
+	<aop:config>
+		<aop:pointcut id="txPointcut"
+		expression="execution(* com.choid.hr.service.EmpService.*teEmp(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+	</aop:config>
+		메소드를 엮을땐 return type, location, method 을 쓴다
+		com...EmpService로 생략 가능하다 
+-->
+
+
