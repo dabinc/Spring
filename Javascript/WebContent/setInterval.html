@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+<p id=area>
+start
+</p>
+
+<button onclick="func()">시작</button>
+<button onclick="clearInterval(func)">정지</button>
+<script>
+let i = 0;
+let func() = function func() {
+	setInterval(function() {
+	i++;
+	document.getElementById('area').innerText=i;
+	}, 1000)
+}
+
+//.innerText는 <p>태그 내부의 start를 뜻하고 .innerhtml은 <p>태그 내의 p를 리턴
+
+// let func = function func() {
+//	이렇게하면 메소드를 바로 런 함 function으로 declare하면 만들어지기만 하니까
+//	시작 버튼 만들어줘야함
+</script>
+
+</body>
+</html>
